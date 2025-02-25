@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат-рулетка</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h1>Чат-рулетка</h1>
+    <button id="findBtn">🔍 Найти собеседника</button>
+    <p id="status"></p>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:3000');
+        const findBtn = document.getElementById("findBtn");
+        const statusText = document.getElementById("status");
+
+        findBtn.addEventListener("click", () => {
+            let timeLeft = 30;
+            findBtn.disabled = true;
+            findBtn.textContent = `⏳ Ожидание: ${timeLeft}s`;
+
+            const countdown = setInterval(() => {
+                timeLeft--;
+                findBtn.textContent = `⏳ Ожидание: ${timeLeft}s`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    findBtn.textContent = "❌ Собеседник не найден";
+                    findBtn.disabled = false;
+                }
+            }, 1000);
+
+            socket.send(JSON.stringify({ action: "find" }));
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.message === "✅ Собеседник найден") {
+                    clearInterval(countdown);
+                    findBtn.textContent = "✅ Собеседник найден";
+                    statusText.textContent = "Вы можете начать чат!";
+                    findBtn.disabled = false;
+                }
+                if (data.message === "❌ Собеседник не найден. Попробуйте позже.") {
+                    clearInterval(countdown);
+                    findBtn.textContent = "❌ Собеседник не найден";
+                    findBtn.disabled = false;
+                }
+            };
+        });
+    </script>
+
+</body>
+</html>
